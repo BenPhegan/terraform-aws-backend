@@ -40,6 +40,9 @@ resource "aws_dynamodb_table" "tf_backend_state_lock_table" {
   hash_key         = "LockID"
   stream_enabled   = var.dynamodb_lock_table_stream_enabled
   stream_view_type = var.dynamodb_lock_table_stream_enabled ? var.dynamodb_lock_table_stream_view_type : ""
+  point_in_time_recovery {
+    enabled = true
+  }
 
   attribute {
     name = "LockID"
@@ -149,5 +152,27 @@ resource "aws_s3_bucket" "tf_backend_logs_bucket" {
   lifecycle {
     prevent_destroy = true
   }
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        kms_master_key_id = var.kms_key_id
+        sse_algorithm     = var.kms_key_id == "" ? "AES256" : "aws:kms"
+      }
+    }
+  }
 }
 
+resource "aws_s3_bucket_public_access_block" "backend" {
+  bucket                  = aws_s3_bucket.tf_backend_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+resource "aws_s3_bucket_public_access_block" "backend_logs" {
+  bucket                  = aws_s3_bucket.tf_backend_logs_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
