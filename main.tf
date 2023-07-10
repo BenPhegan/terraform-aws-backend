@@ -140,7 +140,6 @@ resource "aws_s3_bucket_policy" "tf_backend_bucket_policy" {
 
 resource "aws_s3_bucket" "tf_backend_logs_bucket" {
   bucket = "${var.backend_bucket}-logs"
-  acl    = "log-delivery-write"
   versioning {
     enabled = true
   }
@@ -160,6 +159,23 @@ resource "aws_s3_bucket" "tf_backend_logs_bucket" {
       }
     }
   }
+}
+
+resource "aws_s3_bucket_ownership_controls" "backend_logs" {
+  bucket = aws_s3_bucket.tf_backend_logs_bucket.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+}
+
+resource "aws_s3_bucket_acl" "tf_backend_logs_bucket" {
+  depends_on = [
+    aws_s3_bucket_public_access_block.backend_logs,
+    aws_s3_bucket_ownership_controls.backend_logs,
+  ]
+
+  bucket = aws_s3_bucket.tf_backend_logs_bucket.id
+  acl    = "log-delivery-write"
 }
 
 resource "aws_s3_bucket_public_access_block" "backend" {
